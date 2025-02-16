@@ -44,7 +44,7 @@ st.markdown(
 )
 
 # Wrap main app content in a glass morphism container
-st.markdown('<div class="glass">', unsafe_allow_html=True)
+#st.markdown('<div class="glass">', unsafe_allow_html=True)
 
 st.title("📥 Ze Video Downloader")
 
