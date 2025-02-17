@@ -54,7 +54,7 @@ url = st.text_input("Enter the video URL:")
 def validate_url(url):
     return "http" in url and (".com" in url or ".be" in url)
 
-if url:
+if st.button("process")or url:
     if not validate_url(url):
         st.error("❌ Invalid URL. Please enter a valid video URL.")
     else:
@@ -105,26 +105,36 @@ if url:
             estimated_size = f"{file_size / (1024 * 1024):.2f} MB" if file_size else "Unknown"
 
             # --- Display Video Info ---
-            st.subheader("🎬 Video Information")
-            st.write(f"**📌 Title:** {title}")
-            st.write(f"**🕒 Duration:** {duration_str}")
-            st.write(f"**📢 Uploader:** {uploader}")
-            st.write(f"**📅 Upload Date:** {upload_date}")
-            st.write(f"**🖥️ Resolution:** {resolution}")
-            st.write(f"📂 **Estimated File Size:** {estimated_size}")
+            col1, col2 = st.columns([1, 2])
+            image_col = col2 if "tiktok" in url else col1
+            info_col = col1 if "tiktok" in url else col2
 
-            # --- Video Preview ---
+            # Display the image preview in the appropriate column
+            if thumbnail_url and not "tiktok" in url:
+                with image_col:
+                    st.image(thumbnail_url,caption=("Image Preview"), width=220)
+
+            # Display the video information in the appropriate column
+            with info_col:
+                st.subheader("🎬 Video Information")
+                st.write(f"**📌 Title:** {title}")
+                st.write(f"**🕒 Duration:** {duration_str}")
+                st.write(f"**📢 Uploader:** {uploader}")
+                st.write(f"**📅 Upload Date:** {upload_date}")
+                st.write(f"**🖥️ Resolution:** {resolution}")
+                st.write(f"📂 **Estimated File Size:** {estimated_size}")
+                
             if video_url and not "tiktok" in url:
                 st.subheader("▶ Video Preview")
                 st.video(video_url)
             elif thumbnail_url:
                 st.subheader("🖼️ Image Preview")
-                st.image(thumbnail_url)
+                st.image(thumbnail_url,width=280)
             else:
                 st.warning("⚠ No preview available.")
 
             # --- Quality Selection ---
-            quality = st.radio("Select Quality:", options=["720p MP4", "1080p MP4", "MP3", "M4A", "Image (Social Media)"])
+            quality = st.radio("Select Quality:", options=["720p MP4", "1080p MP4", "MP3", "M4A"])
 
             # --- Download Button ---
             if st.button("Download"):
@@ -169,13 +179,7 @@ if url:
                         'preferredcodec': 'm4a', 
                         'preferredquality': '192'
                     }]
-                elif quality == "Image (Social Media)":
-                    ydl_opts['format'] = 'best'
-                    ydl_opts['postprocessors'] = [{
-                        'key': 'FFmpegVideoRemuxer', 
-                        'preferedformat': 'jpg'
-                    }]
-
+                
                 try:
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info_dict = ydl.extract_info(url, download=True)
@@ -184,8 +188,16 @@ if url:
 
                     if os.path.exists(final_filename):
                         st.success("🎉 Download Complete!")
+                        
+                        # Stream the file directly to the user
                         with open(final_filename, "rb") as file:
-                            st.download_button("⬇ Download File", file, os.path.basename(final_filename))
+                            file_data = file.read()
+                            st.download_button(
+                                label="⬇ Download File",
+                                data=file_data,
+                                file_name=os.path.basename(final_filename),
+                                mime="application/octet-stream",  # Generic MIME type for binary files
+                            )
                     else:
                         st.error("❌ File not found! Try again.")
 
