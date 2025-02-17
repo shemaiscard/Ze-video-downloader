@@ -114,7 +114,7 @@ if url:
             st.write(f"📂 **Estimated File Size:** {estimated_size}")
 
             # --- Video Preview ---
-            if video_url:
+            if video_url and not "tiktok" in url:
                 st.subheader("▶ Video Preview")
                 st.video(video_url)
             elif thumbnail_url:
