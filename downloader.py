@@ -7,49 +7,167 @@ import requests
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
-# Inject Tailwind CSS and custom styles for a dark, bluish glass morphism look
-st.markdown(
-    """
-    <!-- Tailwind CSS CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-      /* Global Body Styles */
-      body {
-          background: #0f172a; /* Dark bluish background */
-          color: #e2e8f0;     /* Light text color */
-          font-family: 'Inter', sans-serif;
-      }
-      /* Override Streamlit container background */
-      .stApp {
-          background: transparent;
-      }
-      /* Glass morphism container */
-      .glass {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 15px;
-          padding: 2rem;
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          margin: 2rem auto;
-          max-width: 800px;
-      }
-      /* Custom button override (if needed) */
-      .btn-custom {
-          @apply bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded;
-      }
-    </style>
-    """, unsafe_allow_html=True
+# Configure Streamlit page settings
+st.set_page_config(
+    page_title="Ze Video Downloader",
+    page_icon="📥",
+    layout="centered"
 )
 
-# Wrap main app content in a glass morphism container
-#st.markdown('<div class="glass">', unsafe_allow_html=True)
+# Custom CSS with enhanced color schemes and responsive design
+st.markdown("""
+    <style>
+        /* Modern CSS Reset and Base Styles */
+        :root {
+            --primary-color: #4F46E5;
+            --secondary-color: #3B82F6;
+            --accent-color: #06B6D4;
+            --success-color: #10B981;
+            --error-color: #EF4444;
+            --warning-color: #F59E0B;
+            --text-primary: #1F2937;
+            --text-secondary: #4B5563;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F3F4F6;
+        }
 
+        [data-theme="dark"] {
+            --primary-color: #6366F1;
+            --secondary-color: #60A5FA;
+            --accent-color: #22D3EE;
+            --success-color: #34D399;
+            --error-color: #F87171;
+            --warning-color: #FBBF24;
+            --text-primary: #F9FAFB;
+            --text-secondary: #E5E7EB;
+            --bg-primary: #111827;
+            --bg-secondary: #1F2937;
+        }
+
+        /* Main Container Styles */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: linear-gradient(
+                135deg,
+                rgba(var(--bg-primary-rgb), 0.95),
+                rgba(var(--bg-secondary-rgb), 0.95)
+            );
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Header Styles */
+        .stTitle {
+            color: var(--primary-color) !important;
+            font-size: 2.5rem !important;
+            font-weight: 800 !important;
+            text-align: center;
+            margin-bottom: 2rem !important;
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Input Field Styles */
+        .stTextInput input {
+            border: 2px solid var(--primary-color) !important;
+            border-radius: 10px !important;
+            padding: 0.75rem 1rem !important;
+            font-size: 1rem !important;
+            transition: all 0.3s ease;
+        }
+
+        .stTextInput input:focus {
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2) !important;
+        }
+
+        /* Button Styles */
+        .stButton > button {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)) !important;
+            color: white !important;
+            border: none !important;
+            padding: 0.75rem 2rem !important;
+            border-radius: 10px !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+        }
+
+        .stButton > button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important;
+        }
+
+        /* Card Styles */
+        .info-card {
+            background: var(--bg-secondary);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Radio Button Styles */
+        .stRadio > label {
+            color: var(--text-primary) !important;
+        }
+
+        /* Alert and Message Styles */
+        .stAlert {
+            border-radius: 10px !important;
+            padding: 1rem !important;
+        }
+
+        .success {
+            background-color: var(--success-color) !important;
+            color: white !important;
+        }
+            
+        /* Progress Bar Styles */
+        .stProgress > div > div {
+            background: linear-gradient(
+                45deg,
+                green,
+                blue
+            ) !important;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+
+        .error {
+            background-color: var(--error-color) !important;
+            color: white !important;
+        }
+
+        .warning {
+            background-color: var(--warning-color) !important;
+            color: white !important;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
+            
+            .stTitle {
+                font-size: 2rem !important;
+            }
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# App Header
 st.title("📥 Ze Video Downloader")
+st.markdown("### Download videos from various platforms with ease! 🚀")
 
-# --- User Input ---
-url = st.text_input("Enter the video URL:")
+# URL Input
+url = st.text_input("🔗 Enter the video URL:", placeholder="Paste your video URL here...")
 
 def validate_url(url):
     return "http" in url and (".com" in url or ".be" in url)
@@ -152,6 +270,7 @@ if st.button("process")or url:
                     elif d['status'] == 'finished':
                         progress_bar.progress(1.0)
                         status_text.text("✅ Download finished, processing file...")
+
 
                 # Update yt_dlp options for downloading
                 ydl_opts.update({
