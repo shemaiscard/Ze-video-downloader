@@ -1,17 +1,7 @@
 import streamlit as st
 import yt_dlp
 import os
-import re
-
-# --- Helper: Sanitize filename and limit title length (45 words) ---
-def sanitize_filename(filename, max_words=45):
-    """
-    Remove characters not allowed in filenames and truncate the title to a specific number of words.
-    """
-    # Remove invalid characters: \ / * ? : " < > |
-    filename = re.sub(r'[\\/*?:"<>|]', "", filename)
-    words = filename.split()
-    return " ".join(words[:max_words])
+import requests
 
 # Ensure the 'downloads' folder exists
 if not os.path.exists("downloads"):
@@ -40,6 +30,7 @@ st.markdown("""
             --bg-primary: #FFFFFF;
             --bg-secondary: #F3F4F6;
         }
+
         [data-theme="dark"] {
             --primary-color: #6366F1;
             --secondary-color: #60A5FA;
@@ -52,6 +43,7 @@ st.markdown("""
             --bg-primary: #111827;
             --bg-secondary: #1F2937;
         }
+
         /* Main Container Styles */
         .main-container {
             max-width: 1200px;
@@ -66,6 +58,7 @@ st.markdown("""
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
         }
+
         /* Header Styles */
         .stTitle {
             color: var(--primary-color) !important;
@@ -77,6 +70,7 @@ st.markdown("""
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
         /* Input Field Styles */
         .stTextInput input {
             border: 2px solid var(--primary-color) !important;
@@ -85,9 +79,11 @@ st.markdown("""
             font-size: 1rem !important;
             transition: all 0.3s ease;
         }
+
         .stTextInput input:focus {
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2) !important;
         }
+
         /* Button Styles */
         .stButton > button {
             background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)) !important;
@@ -100,10 +96,12 @@ st.markdown("""
             text-transform: uppercase !important;
             letter-spacing: 0.5px !important;
         }
+
         .stButton > button:hover {
             transform: translateY(-2px) !important;
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important;
         }
+
         /* Card Styles */
         .info-card {
             background: var(--bg-secondary);
@@ -112,19 +110,23 @@ st.markdown("""
             margin: 1rem 0;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+
         /* Radio Button Styles */
         .stRadio > label {
             color: var(--text-primary) !important;
         }
+
         /* Alert and Message Styles */
         .stAlert {
             border-radius: 10px !important;
             padding: 1rem !important;
         }
+
         .success {
             background-color: var(--success-color) !important;
             color: white !important;
         }
+            
         /* Progress Bar Styles */
         .stProgress > div > div {
             background: linear-gradient(
@@ -135,19 +137,24 @@ st.markdown("""
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
+
         .error {
             background-color: var(--error-color) !important;
             color: white !important;
         }
+
         .warning {
             background-color: var(--warning-color) !important;
             color: white !important;
         }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .main-container {
                 padding: 1rem;
             }
+            
             .stTitle {
                 font-size: 2rem !important;
             }
@@ -157,7 +164,7 @@ st.markdown("""
 
 # App Header
 st.title("📥 Ze Video Downloader")
-st.markdown("### Download videos (<1GB) from various platforms with ease! 🚀")
+st.markdown("### Download videos(<1GB) from various platforms with ease! 🚀")
 
 # URL Input
 url = st.text_input("🔗 Enter the video URL:", placeholder="Paste your video URL here...")
@@ -165,24 +172,24 @@ url = st.text_input("🔗 Enter the video URL:", placeholder="Paste your video U
 def validate_url(url):
     return "http" in url and (".com" in url or ".be" in url)
 
-if st.button("Process") or url:
+if st.button("process")or url:
     if not validate_url(url):
         st.error("❌ Invalid URL. Please enter a valid video URL.")
     else:
         # --- Detect Video Service ---
         def detect_service(url):
-            url_lower = url.lower()
-            if "tiktok" in url_lower:
+            url = url.lower()
+            if "tiktok" in url:
                 return "TikTok"
-            elif "youtube" in url_lower or "youtu.be" in url_lower:
+            elif "youtube" in url or "youtu.be" in url:
                 return "YouTube"
-            elif "vimeo" in url_lower:
+            elif "vimeo" in url:
                 return "Vimeo"
-            elif "instagram" in url_lower:
+            elif "instagram" in url:
                 return "Instagram"
-            elif "facebook" in url_lower:
+            elif "facebook" in url:
                 return "Facebook"
-            elif "snapchat" in url_lower or "snap" in url_lower:
+            elif "snapchat" in url or "snap" in url:
                 return "Snapchat"
             else:
                 return "Other"
@@ -190,84 +197,61 @@ if st.button("Process") or url:
         service_type = detect_service(url)
         st.info(f"🔍 Detected Service: **{service_type}**")
 
-        # --- Extract Video Info using yt_dlp ---
+        # --- Extract Video Info using yt_dlp (for all services including TikTok) ---
         ydl_opts = {
             'quiet': True,
-            # For preview: select a format that has video & audio up to 720p.
-            'format': 'best[height<=720]',
+            'format': 'best',
             'outtmpl': 'downloads/%(title)s.%(ext)s',
             'noplaylist': True,
             'nocheckcertificate': True,  # Avoid SSL errors
             'extract_flat': False,
             'postprocessors': [],
-            'restrictfilenames': True,
         }
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
 
-            # Sanitize and truncate the title to 45 words (for display and filename)
-            raw_title = info.get('title', 'Unknown Title')
-            safe_title = sanitize_filename(raw_title, max_words=45)
-            st.subheader(f"🎬 Video Title: {safe_title}")
-
-            # Update the output template with the sanitized title
-            ydl_opts['outtmpl'] = f"downloads/{safe_title}.%(ext)s"
-
+            title = info.get('title', 'Unknown Title')[:50]  # Limit title to 50 characters
             duration = info.get('duration', 0)
             uploader = info.get('uploader', 'Unknown Uploader')
             upload_date = info.get('upload_date', 'Unknown Date')
             resolution = info.get('resolution', 'Unknown Resolution')
-            file_size = info.get('filesize', 0)
-            thumbnail_url = info.get('thumbnail', None)
+            video_url = info.get('url', None)
+            file_size = info.get('filesize', 0)  # Estimate file size
+            thumbnail_url = info.get('thumbnail', None)  # Get thumbnail for preview
 
             duration_str = f"{duration//3600:02}:{(duration%3600)//60:02}:{duration%60:02}"
             estimated_size = f"{file_size / (1024 * 1024):.2f} MB" if file_size else "Unknown"
 
-            # --- Display Video Info & Preview ---
+            # --- Display Video Info ---
             col1, col2 = st.columns([1, 2])
-            if service_type == "TikTok":
-                # For TikTok, show thumbnail preview only
-                with col1:
-                    if thumbnail_url:
-                        st.image(thumbnail_url, caption="Image Preview", width=220)
-                    else:
-                        st.warning("⚠ No thumbnail available.")
-            else:
-                # --- Determine Preview URL with sound ---
-                preview_url = None
-                if 'formats' in info and isinstance(info['formats'], list):
-                    # Filter formats that have both video and audio, and height ≤720
-                    valid_formats = [
-                        fmt for fmt in info['formats']
-                        if fmt.get('height') and fmt.get('vcodec') != 'none' and fmt.get('acodec') != 'none' and fmt.get('height') <= 720
-                    ]
-                    if valid_formats:
-                        # Choose the format with the highest resolution among those
-                        preview_format = max(valid_formats, key=lambda x: x.get('height', 0))
-                        preview_url = preview_format.get('url')
-                if not preview_url:
-                    preview_url = info.get('url', None)
+            image_col = col2 if "tiktok" in url else col1
+            info_col = col1 if "tiktok" in url else col2
 
-                with col1:
-                    if preview_url:
-                        st.subheader("▶ Video Preview (With Sound)")
-                        st.video(preview_url)
-                    elif thumbnail_url:
-                        st.subheader("🖼️ Image Preview")
-                        st.image(thumbnail_url, width=280)
-                    else:
-                        st.warning("⚠ No preview available.")
+            # Display the image preview in the appropriate column
+            if thumbnail_url and not "tiktok" in url:
+                with image_col:
+                    st.image(thumbnail_url,caption=("Image Preview"), width=220)
 
-            with col2:
+            # Display the video information in the appropriate column
+            with info_col:
                 st.subheader("🎬 Video Information")
-                st.write(f"**📌 Title:** {raw_title}")
+                st.write(f"**📌 Title:** {title}")
                 st.write(f"**🕒 Duration:** {duration_str}")
                 st.write(f"**📢 Uploader:** {uploader}")
                 st.write(f"**📅 Upload Date:** {upload_date}")
                 st.write(f"**🖥️ Resolution:** {resolution}")
                 st.write(f"📂 **Estimated File Size:** {estimated_size}")
+
+            if video_url and not "tiktok" in url:
+                st.subheader("▶ Video Preview")
+                st.video(video_url)
+            elif thumbnail_url:
+                st.subheader("🖼️ Image Preview")
+                st.image(thumbnail_url,width=280)
+            else:
+                st.warning("⚠ No preview available.")
 
             # --- Quality Selection ---
             quality = st.radio("Select Quality:", options=["720p MP4", "1080p MP4", "MP3", "M4A"])
@@ -289,12 +273,15 @@ if st.button("Process") or url:
                         progress_bar.progress(1.0)
                         status_text.text("✅ Download finished, processing file...")
 
-                # Update yt_dlp options for downloading based on quality
+
+                # Update yt_dlp options for downloading
                 ydl_opts.update({
+                    'outtmpl': 'downloads/%(title)s.%(ext)s',
                     'progress_hooks': [progress_hook],
                     'noplaylist': True,
                 })
 
+                # Format selection handling
                 if quality == "720p MP4":
                     ydl_opts['format'] = 'bestvideo[height<=720]+bestaudio/best'
                 elif quality == "1080p MP4":
@@ -318,20 +305,19 @@ if st.button("Process") or url:
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info_dict = ydl.extract_info(url, download=True)
                         original_filename = ydl.prepare_filename(info_dict)
-                        if quality == "M4A":
-                            final_filename = os.path.splitext(original_filename)[0] + ".m4a"
-                        else:
-                            final_filename = original_filename
+                        final_filename = os.path.splitext(original_filename)[0] + ".m4a" if quality == "M4A" else original_filename
 
                     if os.path.exists(final_filename):
                         st.success("🎉 Download Complete!")
+
+                        # Stream the file directly to the user
                         with open(final_filename, "rb") as file:
                             file_data = file.read()
                             st.download_button(
                                 label="⬇ Download File",
                                 data=file_data,
                                 file_name=os.path.basename(final_filename),
-                                mime="application/octet-stream",
+                                mime="application/octet-stream",  # Generic MIME type for binary files
                             )
                     else:
                         st.error("❌ File not found! Try again.")
