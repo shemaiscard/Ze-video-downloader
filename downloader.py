@@ -164,7 +164,7 @@ st.markdown("""
 
 # App Header
 st.title("📥 Ze Video Downloader")
-st.markdown("### Download videos from various platforms with ease! 🚀")
+st.markdown("### Download videos(<1GB) from various platforms with ease! 🚀")
 
 # URL Input
 url = st.text_input("🔗 Enter the video URL:", placeholder="Paste your video URL here...")
@@ -178,6 +178,7 @@ if st.button("process")or url:
     else:
         # --- Detect Video Service ---
         def detect_service(url):
+            url = url.lower()
             if "tiktok" in url:
                 return "TikTok"
             elif "youtube" in url or "youtu.be" in url:
@@ -190,8 +191,9 @@ if st.button("process")or url:
                 return "Facebook"
             elif "snapchat" in url or "snap" in url:
                 return "Snapchat"
-            return "Other"
-
+            else:
+                return "Other"
+                
         service_type = detect_service(url)
         st.info(f"🔍 Detected Service: **{service_type}**")
 
