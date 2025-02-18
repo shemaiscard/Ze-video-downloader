@@ -1,7 +1,16 @@
 import streamlit as st
 import yt_dlp
 import os
-import requests
+import re
+
+# --- Helper: Sanitize filename ---
+def sanitize_filename(filename, max_length=50):
+    """
+    Remove characters not allowed in filenames and truncate the title.
+    """
+    # Remove invalid characters: \ / * ? : " < > |
+    filename = re.sub(r'[\\/*?:"<>|]', "", filename)
+    return filename[:max_length]
 
 # Ensure the 'downloads' folder exists
 if not os.path.exists("downloads"):
@@ -138,7 +147,6 @@ st.markdown("""
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-
         .error {
             background-color: var(--error-color) !important;
             color: white !important;
@@ -172,32 +180,32 @@ url = st.text_input("🔗 Enter the video URL:", placeholder="Paste your video U
 def validate_url(url):
     return "http" in url and (".com" in url or ".be" in url)
 
-if st.button("process")or url:
+if st.button("process") or url:
     if not validate_url(url):
         st.error("❌ Invalid URL. Please enter a valid video URL.")
     else:
         # --- Detect Video Service ---
         def detect_service(url):
-            url = url.lower()
-            if "tiktok" in url:
+            url_lower = url.lower()
+            if "tiktok" in url_lower:
                 return "TikTok"
-            elif "youtube" in url or "youtu.be" in url:
+            elif "youtube" in url_lower or "youtu.be" in url_lower:
                 return "YouTube"
-            elif "vimeo" in url:
+            elif "vimeo" in url_lower:
                 return "Vimeo"
-            elif "instagram" in url:
+            elif "instagram" in url_lower:
                 return "Instagram"
-            elif "facebook" in url:
+            elif "facebook" in url_lower:
                 return "Facebook"
-            elif "snapchat" in url or "snap" in url:
+            elif "snapchat" in url_lower or "snap" in url_lower:
                 return "Snapchat"
             else:
                 return "Other"
-                
+
         service_type = detect_service(url)
         st.info(f"🔍 Detected Service: **{service_type}**")
 
-        # --- Extract Video Info using yt_dlp (for all services including TikTok) ---
+        # --- Extract Video Info using yt_dlp ---
         ydl_opts = {
             'quiet': True,
             'format': 'best',
@@ -206,52 +214,88 @@ if st.button("process")or url:
             'nocheckcertificate': True,  # Avoid SSL errors
             'extract_flat': False,
             'postprocessors': [],
+            'restrictfilenames': True,  # Avoid illegal characters in filenames
         }
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
 
-            title = info.get('title', 'Unknown Title')[:50]  # Limit title to 50 characters
+            # Sanitize and truncate the title to avoid overly long filenames
+            raw_title = info.get('title', 'Unknown Title')
+            safe_title = sanitize_filename(raw_title)
+            if not safe_title:
+                safe_title = info.get('id', 'video')
+            # Update the output template with the sanitized title
+            ydl_opts['outtmpl'] = f"downloads/{safe_title}.%(ext)s"
+
             duration = info.get('duration', 0)
             uploader = info.get('uploader', 'Unknown Uploader')
             upload_date = info.get('upload_date', 'Unknown Date')
             resolution = info.get('resolution', 'Unknown Resolution')
-            video_url = info.get('url', None)
-            file_size = info.get('filesize', 0)  # Estimate file size
-            thumbnail_url = info.get('thumbnail', None)  # Get thumbnail for preview
+            file_size = info.get('filesize', 0)
+            thumbnail_url = info.get('thumbnail', None)
 
             duration_str = f"{duration//3600:02}:{(duration%3600)//60:02}:{duration%60:02}"
             estimated_size = f"{file_size / (1024 * 1024):.2f} MB" if file_size else "Unknown"
 
             # --- Display Video Info ---
             col1, col2 = st.columns([1, 2])
-            image_col = col2 if "tiktok" in url else col1
-            info_col = col1 if "tiktok" in url else col2
+            # For TikTok, show image preview; for others, use the primary image column
+            image_col = col2 if "tiktok" in url.lower() else col1
+            info_col = col1 if "tiktok" in url.lower() else col2
 
-            # Display the image preview in the appropriate column
-            if thumbnail_url and not "tiktok" in url:
+            if thumbnail_url and not "tiktok" in url.lower():
                 with image_col:
-                    st.image(thumbnail_url,caption=("Image Preview"), width=220)
+                    st.image(thumbnail_url, caption="Image Preview", width=220)
 
-            # Display the video information in the appropriate column
             with info_col:
                 st.subheader("🎬 Video Information")
-                st.write(f"**📌 Title:** {title}")
+                st.write(f"**📌 Title:** {raw_title}")
                 st.write(f"**🕒 Duration:** {duration_str}")
                 st.write(f"**📢 Uploader:** {uploader}")
                 st.write(f"**📅 Upload Date:** {upload_date}")
                 st.write(f"**🖥️ Resolution:** {resolution}")
                 st.write(f"📂 **Estimated File Size:** {estimated_size}")
-                
-            if video_url and not "tiktok" in url:
-                st.subheader("▶ Video Preview")
-                st.video(video_url)
-            elif thumbnail_url:
-                st.subheader("🖼️ Image Preview")
-                st.image(thumbnail_url,width=280)
+
+            # --- Determine Preview URL with desired quality (up to 720p) ---
+            preview_url = None
+            if service_type != "TikTok":
+                if 'formats' in info and isinstance(info['formats'], list):
+                    # Filter formats that have height info
+                    formats_with_height = [fmt for fmt in info['formats'] if fmt.get('height')]
+                    # Select formats with height <=720
+                    formats_720 = [fmt for fmt in formats_with_height if fmt['height'] <= 720]
+                    if formats_720:
+                        # Choose the format with the highest resolution under or equal to 720p
+                        preview_format = max(formats_720, key=lambda x: x['height'])
+                    elif formats_with_height:
+                        # Fallback: choose the format with the lowest resolution available
+                        preview_format = min(formats_with_height, key=lambda x: x['height'])
+                    else:
+                        preview_format = None
+                    if preview_format:
+                        preview_url = preview_format.get('url')
+                # Fallback if formats are not available
+                if not preview_url:
+                    preview_url = info.get('url', None)
+
+            # --- Display Preview ---
+            if service_type != "TikTok":
+                if preview_url:
+                    st.subheader("▶ Video Preview")
+                    st.video(preview_url)
+                elif thumbnail_url:
+                    st.subheader("🖼️ Image Preview")
+                    st.image(thumbnail_url, width=280)
+                else:
+                    st.warning("⚠ No preview available.")
             else:
-                st.warning("⚠ No preview available.")
+                if thumbnail_url:
+                    st.subheader("🖼️ Image Preview")
+                    st.image(thumbnail_url, width=280)
+                else:
+                    st.warning("⚠ No preview available.")
 
             # --- Quality Selection ---
             quality = st.radio("Select Quality:", options=["720p MP4", "1080p MP4", "MP3", "M4A"])
@@ -273,15 +317,13 @@ if st.button("process")or url:
                         progress_bar.progress(1.0)
                         status_text.text("✅ Download finished, processing file...")
 
-
                 # Update yt_dlp options for downloading
                 ydl_opts.update({
-                    'outtmpl': 'downloads/%(title)s.%(ext)s',
                     'progress_hooks': [progress_hook],
                     'noplaylist': True,
                 })
 
-                # Format selection handling
+                # Adjust format based on quality selection
                 if quality == "720p MP4":
                     ydl_opts['format'] = 'bestvideo[height<=720]+bestaudio/best'
                 elif quality == "1080p MP4":
@@ -300,7 +342,7 @@ if st.button("process")or url:
                         'preferredcodec': 'm4a', 
                         'preferredquality': '192'
                     }]
-                
+
                 try:
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info_dict = ydl.extract_info(url, download=True)
@@ -309,15 +351,13 @@ if st.button("process")or url:
 
                     if os.path.exists(final_filename):
                         st.success("🎉 Download Complete!")
-                        
-                        # Stream the file directly to the user
                         with open(final_filename, "rb") as file:
                             file_data = file.read()
                             st.download_button(
                                 label="⬇ Download File",
                                 data=file_data,
                                 file_name=os.path.basename(final_filename),
-                                mime="application/octet-stream",  # Generic MIME type for binary files
+                                mime="application/octet-stream",
                             )
                     else:
                         st.error("❌ File not found! Try again.")
