@@ -2,6 +2,7 @@ import streamlit as st
 import yt_dlp
 import os
 import requests
+import re
 
 # Ensure the 'downloads' folder exists
 if not os.path.exists("downloads"):
@@ -14,7 +15,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Custom CSS with enhanced color schemes and responsive design
+# [Previous CSS styles remain exactly the same]
 st.markdown("""
     <style>
         /* Modern CSS Reset and Base Styles */
@@ -138,7 +139,6 @@ st.markdown("""
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-
         .error {
             background-color: var(--error-color) !important;
             color: white !important;
@@ -164,7 +164,7 @@ st.markdown("""
 
 # App Header
 st.title("📥 Ze Video Downloader")
-st.markdown("### Download videos(<1GB) from various platforms with ease! 🚀")
+st.markdown("### Download videos from various platforms with ease! 🚀")
 
 # URL Input
 url = st.text_input("🔗 Enter the video URL:", placeholder="Paste your video URL here...")
@@ -172,7 +172,13 @@ url = st.text_input("🔗 Enter the video URL:", placeholder="Paste your video U
 def validate_url(url):
     return "http" in url and (".com" in url or ".be" in url)
 
-if st.button("process")or url:
+def sanitize_filename(title):
+    # Remove or replace problematic characters
+    title = re.sub(r'[^\w\s-]', '', title)
+    # Limit to 50 characters and strip whitespace
+    return title[:50].strip()
+
+if st.button("process") or url:
     if not validate_url(url):
         st.error("❌ Invalid URL. Please enter a valid video URL.")
     else:
@@ -191,35 +197,37 @@ if st.button("process")or url:
                 return "Facebook"
             elif "snapchat" in url or "snap" in url:
                 return "Snapchat"
-            else:
-                return "Other"
+            return "Other"
 
         service_type = detect_service(url)
         st.info(f"🔍 Detected Service: **{service_type}**")
 
-        # --- Extract Video Info using yt_dlp (for all services including TikTok) ---
+        # --- Extract Video Info using yt_dlp ---
         ydl_opts = {
             'quiet': True,
             'format': 'best',
-            'outtmpl': 'downloads/%(title)s.%(ext)s',
+            'outtmpl': 'downloads/%(title).50s.%(ext)s',  # Limit filename to 50 chars
             'noplaylist': True,
-            'nocheckcertificate': True,  # Avoid SSL errors
+            'nocheckcertificate': True,
             'extract_flat': False,
-            'postprocessors': [],
         }
+
+        # Removed YouTube-specific preview handling to use a normal video preview for all services
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
 
-            title = info.get('title', 'Unknown Title')[:50]  # Limit title to 50 characters
+            # Sanitize and limit title length
+            original_title = info.get('title', 'Unknown Title')
+            title = sanitize_filename(original_title)
             duration = info.get('duration', 0)
             uploader = info.get('uploader', 'Unknown Uploader')
             upload_date = info.get('upload_date', 'Unknown Date')
             resolution = info.get('resolution', 'Unknown Resolution')
             video_url = info.get('url', None)
-            file_size = info.get('filesize', 0)  # Estimate file size
-            thumbnail_url = info.get('thumbnail', None)  # Get thumbnail for preview
+            file_size = info.get('filesize', 0)
+            thumbnail_url = info.get('thumbnail', None)
 
             duration_str = f"{duration//3600:02}:{(duration%3600)//60:02}:{duration%60:02}"
             estimated_size = f"{file_size / (1024 * 1024):.2f} MB" if file_size else "Unknown"
@@ -229,12 +237,12 @@ if st.button("process")or url:
             image_col = col2 if "tiktok" in url else col1
             info_col = col1 if "tiktok" in url else col2
 
-            # Display the image preview in the appropriate column
+            # Display the image preview
             if thumbnail_url and not "tiktok" in url:
                 with image_col:
-                    st.image(thumbnail_url,caption=("Image Preview"), width=220)
+                    st.image(thumbnail_url, caption="Image Preview", width=220)
 
-            # Display the video information in the appropriate column
+            # Display video information
             with info_col:
                 st.subheader("🎬 Video Information")
                 st.write(f"**📌 Title:** {title}")
@@ -243,13 +251,13 @@ if st.button("process")or url:
                 st.write(f"**📅 Upload Date:** {upload_date}")
                 st.write(f"**🖥️ Resolution:** {resolution}")
                 st.write(f"📂 **Estimated File Size:** {estimated_size}")
-
+                
             if video_url and not "tiktok" in url:
                 st.subheader("▶ Video Preview")
                 st.video(video_url)
             elif thumbnail_url:
                 st.subheader("🖼️ Image Preview")
-                st.image(thumbnail_url,width=280)
+                st.image(thumbnail_url, width=280)
             else:
                 st.warning("⚠ No preview available.")
 
@@ -273,34 +281,33 @@ if st.button("process")or url:
                         progress_bar.progress(1.0)
                         status_text.text("✅ Download finished, processing file...")
 
-
-                # Update yt_dlp options for downloading
+                # Update download options with sanitized filename
                 ydl_opts.update({
-                    'outtmpl': 'downloads/%(title)s.%(ext)s',
+                    'outtmpl': f'downloads/{sanitize_filename(title)}.%(ext)s',
                     'progress_hooks': [progress_hook],
                     'noplaylist': True,
                 })
 
                 # Format selection handling
                 if quality == "720p MP4":
-                    ydl_opts['format'] = 'bestvideo[height<=720]+bestaudio/best'
+                    ydl_opts['format'] = 'bestvideo[height<=720]+bestaudio/best[height<=720]'
                 elif quality == "1080p MP4":
                     ydl_opts['format'] = 'bestvideo[height<=1080]+bestaudio/best'
                 elif quality == "MP3":
                     ydl_opts['format'] = 'bestaudio/best'
                     ydl_opts['postprocessors'] = [{
-                        'key': 'FFmpegExtractAudio', 
-                        'preferredcodec': 'mp3', 
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'mp3',
                         'preferredquality': '192'
                     }]
                 elif quality == "M4A":
                     ydl_opts['format'] = 'bestaudio/best'
                     ydl_opts['postprocessors'] = [{
-                        'key': 'FFmpegExtractAudio', 
-                        'preferredcodec': 'm4a', 
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'm4a',
                         'preferredquality': '192'
                     }]
-
+                
                 try:
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info_dict = ydl.extract_info(url, download=True)
@@ -309,15 +316,15 @@ if st.button("process")or url:
 
                     if os.path.exists(final_filename):
                         st.success("🎉 Download Complete!")
-
-                        # Stream the file directly to the user
+                        
+                        # Stream the file to user
                         with open(final_filename, "rb") as file:
                             file_data = file.read()
                             st.download_button(
                                 label="⬇ Download File",
                                 data=file_data,
                                 file_name=os.path.basename(final_filename),
-                                mime="application/octet-stream",  # Generic MIME type for binary files
+                                mime="application/octet-stream",
                             )
                     else:
                         st.error("❌ File not found! Try again.")
