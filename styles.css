@@ -1,0 +1,179 @@
+/* styles.css */
+:root {
+    --background-light: #ffffff;
+    --background-dark: #1a1a1a;
+    --text-light: #2d3436;
+    --text-dark: #e9ecef;
+    --primary-color: #4a6ee0;
+    --primary-hover: #6384e8;
+    --input-background-light: #f0f2f5;
+    --input-background-dark: #2d3436;
+    --card-background-light: #f8f9fa;
+    --card-background-dark: #2d3436;
+    --border-light: #dee2e6;
+    --border-dark: #495057;
+    --success-color: #28a745;
+    --error-color: #dc3545;
+}
+
+.stApp {
+    background: var(--background-light);
+    color: var(--text-light);
+    transition: background 0.3s, color 0.3s;
+}
+
+@media (prefers-color-scheme: dark) {
+    .stApp {
+        background: var(--background-dark);
+        color: var(--text-dark);
+    }
+}
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 10px;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--border-light);
+}
+
+@media (prefers-color-scheme: dark) {
+    .stTabs [data-baseweb="tab-list"] {
+        border-color: var(--border-dark);
+    }
+}
+
+.stTabs [data-baseweb="tab"] {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    transition: all 0.3s;
+    color: var(--text-light);
+    background: var(--background-light);
+}
+
+@media (prefers-color-scheme: dark) {
+    .stTabs [data-baseweb="tab"] {
+        color: var(--text-dark);
+        background: var(--background-dark);
+    }
+}
+
+.stTabs [aria-selected="true"] {
+    background: var(--primary-color) !important;
+    color: white !important;
+}
+
+.stTextInput>div>div>input,
+.stNumberInput>div>div>div>input {
+    background: var(--input-background-light);
+    color: var(--text-light);
+    border: 2px solid var(--border-light);
+}
+
+@media (prefers-color-scheme: dark) {
+    .stTextInput>div>div>input,
+    .stNumberInput>div>div>div>input {
+        background: var(--input-background-dark);
+        color: var(--text-dark);
+        border-color: var(--border-dark);
+    }
+}
+
+.stButton>button {
+    background: var(--primary-color);
+    color: white;
+    transition: all 0.3s;
+}
+
+.stButton>button:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.stDataFrame {
+    background: var(--card-background-light);
+    color: var(--text-light);
+    border: 1px solid var(--border-light);
+}
+
+@media (prefers-color-scheme: dark) {
+    .stDataFrame {
+        background: var(--card-background-dark);
+        color: var(--text-dark);
+        border-color: var(--border-dark);
+    }
+}
+
+.stDataFrame th {
+    background: var(--primary-color);
+    color: white;
+}
+
+.stAlert {
+    background: var(--card-background-light);
+    border: 1px solid var(--border-light);
+    color: var(--text-light);
+}
+
+@media (prefers-color-scheme: dark) {
+    .stAlert {
+        background: var(--card-background-dark);
+        border-color: var(--border-dark);
+        color: var(--text-dark);
+    }
+}
+
+.stExpander {
+    background: var(--card-background-light);
+    border: 1px solid var(--border-light);
+}
+
+@media (prefers-color-scheme: dark) {
+    .stExpander {
+        background: var(--card-background-dark);
+        border-color: var(--border-dark);
+    }
+}
+
+.stMarkdown {
+    color: var(--text-light);
+}
+
+@media (prefers-color-scheme: dark) {
+    .stMarkdown {
+        color: var(--text-dark);
+    }
+}
+
+code {
+    background: rgba(0,0,0,0.1);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+    code {
+        background: rgba(255,255,255,0.1);
+    }
+}
+
+.stImage img {
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    .stImage img {
+        border-color: var(--border-dark);
+    }
+}
+
+@media (max-width: 768px) {
+    .stTabs [data-baseweb="tab-list"] {
+        flex-direction: column;
+    }
+    
+    .stNumberInput, .stTextInput {
+        width: 100%;
+    }
+}
