@@ -15,6 +15,7 @@ st.set_page_config(
     layout="centered"
 )
 
+# [Previous CSS styles remain exactly the same]
 st.markdown("""
     <style>
         /* Modern CSS Reset and Base Styles */
@@ -261,8 +262,10 @@ if st.button("process") or url:
                 st.warning("⚠ No preview available.")
 
             # --- Quality Selection ---
-            quality = st.radio("Select Quality:", options=["720p MP4", "1080p MP4", "MP3", "M4A"])
-
+            if service_type in ["TikTok", "Instagram", "Facebook"]:
+                quality = st.radio("Select Quality:", options=["1080p MP4", "MP3", "M4A"])
+            else:
+                quality = st.radio("Select Quality:", options=["720p MP4", "1080p MP4", "MP3", "M4A"])
             # --- Download Button ---
             if st.button("Download"):
                 progress_bar = st.progress(0)
