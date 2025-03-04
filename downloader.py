@@ -206,14 +206,16 @@ if st.button("process") or url:
         ydl_opts = {
             'quiet': True,
             'format': 'best',
-            'outtmpl': 'downloads/%(title).50s.%(ext)s',  # Limit filename to 50 chars
+            'outtmpl': 'downloads/%(title).50s.%(ext)s',
             'noplaylist': True,
             'nocheckcertificate': True,
             'extract_flat': False,
-        }
-
-        # Removed YouTube-specific preview handling to use a normal video preview for all services
-
+            # Add headers to bypass anti-bot protection
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Referer': 'https://www.google.com/'
+            }
+    }
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -338,3 +340,4 @@ if st.button("process") or url:
             st.error(f"❌ Error fetching video info: {e}")
 
 st.markdown("</div>", unsafe_allow_html=True)
+
