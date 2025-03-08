@@ -205,16 +205,17 @@ if st.button("process") or url:
         # --- Extract Video Info using yt_dlp ---
         ydl_opts = {
             'quiet': True,
-            'format': 'best',
+            'format': 'bestvideo+bestaudio/best',
             'outtmpl': 'downloads/%(title).50s.%(ext)s',
             'noplaylist': True,
             'nocheckcertificate': True,
             'extract_flat': False,
-            # Add headers to bypass anti-bot protection
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Referer': 'https://www.google.com/'
-            }
+                'Referer': 'https://www.google.com/',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Origin': 'https://www.youtube.com',
+            },
     }
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
