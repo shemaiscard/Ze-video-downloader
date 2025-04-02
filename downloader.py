@@ -215,13 +215,7 @@ if st.button("process") or url:
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Referer': 'https://www.google.com/'
             }
-            ,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['tv'],
-                'skip': ['dash', 'hls']
-            }
-        },
+            
         'forceip': 4,
         'geo_bypass': True,
         'geo_bypass_country': 'US',
