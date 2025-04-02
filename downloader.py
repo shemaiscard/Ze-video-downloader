@@ -219,6 +219,7 @@ if st.button("process") or url:
                 'youtube': {
                     'player_client': ['android'],
                     'skip': ['dash', 'hls'],
+                    'formats': 'missing_pot'
                 }
             },
             'forceip': 4,
