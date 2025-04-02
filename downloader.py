@@ -15,7 +15,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Modern UI Styling
+# Modern UI Styling - Fixed missing parenthesis in gradient definition
 st.markdown("""
     <style>
         :root {
@@ -64,7 +64,7 @@ st.markdown("""
             font-weight: 800 !important;
             text-align: center;
             margin-bottom: 2rem !important;
-            background: linear-gradient(45deg, var(--primary-color), var(--accent-color);
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color)) !important;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -110,7 +110,7 @@ st.markdown("""
 
 # App Header
 st.title("📥 Ze Video Downloader")
-st.markdown("### Download any video from YouTube, TikTok,...")
+st.markdown("### Download any video from YouTube, TikTok, Instagram, and more")
 
 # URL Input
 url = st.text_input("🔗 Enter the video URL:", placeholder="Paste your video URL here...")
@@ -123,6 +123,7 @@ def validate_url(url):
         return False
 
 def sanitize_filename(title):
+    # Remove invalid characters and limit the length
     title = re.sub(r'[^\w\s-]', '', title)
     return title[:50].strip()
 
@@ -143,7 +144,7 @@ def get_ydl_opts(quality=None):
                 'skip': ['hls', 'dash']
             }
         },
-        'format': '(bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4]/[protocol^=http]',
+        'format': '(bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4]/[protocol^=http])',
         'allow_unplayable_formats': True,
         'hls_use_mpegts': True,
         'postprocessors': [{
@@ -187,7 +188,10 @@ def detect_service(url):
         return "Facebook"
     return "Other"
 
-if st.button("Process") or url:
+# Main process button
+process_button = st.button("Process")
+
+if process_button or url:
     if not validate_url(url):
         st.error("❌ Invalid URL. Please enter a valid video URL.")
     else:
@@ -200,6 +204,7 @@ if st.button("Process") or url:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
 
+            # Extract video information
             title = sanitize_filename(info.get('title', 'Unknown Title'))
             duration = info.get('duration', 0)
             uploader = info.get('uploader', 'Unknown Uploader')
@@ -209,6 +214,7 @@ if st.button("Process") or url:
             file_size = info.get('filesize', 0)
             thumbnail_url = info.get('thumbnail', None)
 
+            # Format duration and file size
             duration_str = f"{duration//3600:02}:{(duration%3600)//60:02}:{duration%60:02}"
             estimated_size = f"{file_size / (1024 * 1024):.2f} MB" if file_size else "Unknown"
 
@@ -226,6 +232,7 @@ if st.button("Process") or url:
                 st.write(f"**🖥️ Resolution:** {resolution}")
                 st.write(f"📂 **Estimated File Size:** {estimated_size}")
 
+            # Video preview section
             if video_url:
                 st.subheader("▶ Video Preview")
                 st.video(video_url)
@@ -239,6 +246,7 @@ if st.button("Process") or url:
             else:
                 quality = st.radio("Select Quality:", options=["720p MP4", "1080p MP4", "MP3", "M4A"])
 
+            # Download button
             if st.button("Download"):
                 progress_bar = st.progress(0)
                 status_text = st.empty()
@@ -255,9 +263,13 @@ if st.button("Process") or url:
                         progress_bar.progress(1.0)
                         status_text.text("✅ Processing file...")
 
+                # Set up the download options with the selected quality
                 ydl_opts = get_ydl_opts(quality)
                 ydl_opts['progress_hooks'] = [progress_hook]
-                ydl_opts['outtmpl'] = f'downloads/{title}.%(ext)s'
+                
+                # Fix the filename path to ensure correct extension handling
+                safe_title = sanitize_filename(title)
+                ydl_opts['outtmpl'] = f'downloads/{safe_title}.%(ext)s'
 
                 try:
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -265,8 +277,15 @@ if st.button("Process") or url:
                         original_filename = ydl.prepare_filename(info_dict)
                         final_filename = original_filename
                         
-                        if quality in ["MP3", "M4A"]:
-                            final_filename = os.path.splitext(original_filename)[0] + ('.mp3' if quality == "MP3" else '.m4a')
+                        # Adjust extension for audio formats
+                        if quality == "MP3":
+                            final_filename = os.path.splitext(original_filename)[0] + '.mp3'
+                        elif quality == "M4A":
+                            final_filename = os.path.splitext(original_filename)[0] + '.m4a'
+                        
+                        # Ensure we're getting the correct path
+                        if not os.path.exists(final_filename) and os.path.exists(os.path.join('downloads', os.path.basename(final_filename))):
+                            final_filename = os.path.join('downloads', os.path.basename(final_filename))
 
                     if os.path.exists(final_filename):
                         st.success("🎉 Download Complete!")
@@ -278,11 +297,12 @@ if st.button("Process") or url:
                                 mime="application/octet-stream",
                             )
                     else:
-                        st.error("❌ File not found! Try again.")
+                        st.error(f"❌ File not found at {final_filename}! Try again.")
 
                 except yt_dlp.utils.DownloadError as e:
                     if "PO token" in str(e):
-                        # Fallback to HLS
+                        # Fallback to HLS for YouTube
+                        status_text.text("⚠️ Primary method failed, trying alternative...")
                         ydl_opts['extractor_args']['youtube']['player_client'] = ['ios', 'web_safari']
                         ydl_opts['format'] = 'bestvideo[protocol=m3u8]+bestaudio/best'
                         try:
@@ -297,6 +317,20 @@ if st.button("Process") or url:
                                             file_name=os.path.basename(final_filename),
                                             mime="application/octet-stream",
                                         )
+                                else:
+                                    possible_files = [f for f in os.listdir("downloads") if safe_title in f]
+                                    if possible_files:
+                                        found_file = os.path.join("downloads", possible_files[0])
+                                        st.success(f"🎉 Download Complete! Found file: {possible_files[0]}")
+                                        with open(found_file, "rb") as file:
+                                            st.download_button(
+                                                label="⬇ Download File",
+                                                data=file.read(),
+                                                file_name=possible_files[0],
+                                                mime="application/octet-stream",
+                                            )
+                                    else:
+                                        st.error("❌ Could not find the downloaded file!")
                         except Exception as e:
                             st.error(f"❌ Fallback download failed: {e}")
                     else:
