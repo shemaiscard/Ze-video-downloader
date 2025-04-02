@@ -208,12 +208,6 @@ if st.button("process") or url:
             'format': 'best',
             'outtmpl': 'downloads/%(title).50s.%(ext)s',
             'noplaylist': True,
-            'allow_unplayable_formats': True,
-            'continuedl': True,
-            'ignoreerrors': True,
-            'retries': 10,
-            'fragment_retries': 10,
-            'skip_unavailable_fragments': True,
             'nocheckcertificate': True,
             'extract_flat': False,
             'http_headers': {
@@ -223,9 +217,8 @@ if st.button("process") or url:
                 ,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android','web'],
+                    'player_client': ['android'],
                     'skip': ['dash', 'hls'],
-                    'formats': 'missing_pot' 
                 }
             },
             'forceip': 4,
