@@ -218,7 +218,7 @@ if st.button("process") or url:
             ,
         'extractor_args': {
             'youtube': {
-                'player_client': ['tv_embedded'],
+                'player_client': ['web_embedded'],
                 'skip': ['dash', 'hls']
             }
         },
