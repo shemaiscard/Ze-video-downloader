@@ -15,6 +15,7 @@ st.set_page_config(
     layout="centered"
 )
 
+# [Previous CSS styles remain exactly the same]
 st.markdown("""
     <style>
         /* Modern CSS Reset and Base Styles */
@@ -207,24 +208,31 @@ if st.button("process") or url:
             'format': 'best',
             'outtmpl': 'downloads/%(title).50s.%(ext)s',
             'noplaylist': True,
+            'allow_unplayable_formats': True,
+            'continuedl': True,
+            'ignoreerrors': True,
+            'retries': 10,
+            'fragment_retries': 10,
+            'skip_unavailable_fragments': True,
             'nocheckcertificate': True,
             'extract_flat': False,
-            # Add headers to bypass anti-bot protection
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Referer': 'https://www.google.com/'
-            },
- 
+            }
+                ,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['web'],  
+                    'player_client': ['android'],['web'],
+                    'skip': ['dash', 'hls'],
+                    'formats': 'missing_pot' 
                 }
             },
             'forceip': 4,
             'geo_bypass': True,
             'geo_bypass_country': 'US',
             'ignore_age_restrictions': True,
-        }
+    }
     
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
