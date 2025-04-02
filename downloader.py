@@ -15,7 +15,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# [Previous CSS styles remain exactly the same]
+# [CSS styles remain exactly the same]
 st.markdown("""
     <style>
         /* Modern CSS Reset and Base Styles */
@@ -214,19 +214,19 @@ if st.button("process") or url:
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Referer': 'https://www.google.com/'
-            }
-            ,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android'],
-                'skip': ['dash', 'hls']
-            }
-        },
-        'forceip': 4,
-        'geo_bypass': True,
-        'geo_bypass_country': 'US',
-        'ignore_age_restrictions': True,
-    }
+            },
+            # Fix for YouTube PO token issue
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['web'],  # Changed from 'android' to 'web'
+                    'formats': ['auto_generated=True']  # Include all formats
+                }
+            },
+            'forceip': 4,
+            'geo_bypass': True,
+            'geo_bypass_country': 'US',
+            'ignore_age_restrictions': True,
+        }
     
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
