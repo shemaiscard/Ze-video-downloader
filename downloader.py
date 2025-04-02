@@ -223,7 +223,7 @@ if st.button("process") or url:
                 ,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android'],['web'],
+                    'player_client': ['android','web']
                     'skip': ['dash', 'hls'],
                     'formats': 'missing_pot' 
                 }
