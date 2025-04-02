@@ -218,7 +218,7 @@ if st.button("process") or url:
             ,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android_vr'],
+                'player_client': ['tv'],
                 'skip': ['dash', 'hls']
             }
         },
