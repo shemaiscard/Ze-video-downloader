@@ -15,7 +15,6 @@ st.set_page_config(
     layout="centered"
 )
 
-# [CSS styles remain exactly the same]
 st.markdown("""
     <style>
         /* Modern CSS Reset and Base Styles */
@@ -215,11 +214,10 @@ if st.button("process") or url:
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Referer': 'https://www.google.com/'
             },
-            # Fix for YouTube PO token issue
+ 
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['web'],  # Changed from 'android' to 'web'
-                    'formats': ['auto_generated=True']  # Include all formats
+                    'player_client': ['web'],  
                 }
             },
             'forceip': 4,
