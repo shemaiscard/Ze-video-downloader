@@ -15,7 +15,6 @@ st.set_page_config(
     layout="centered"
 )
 
-# [Previous CSS styles remain exactly the same]
 st.markdown("""
     <style>
         /* Modern CSS Reset and Base Styles */
