@@ -15,14 +15,14 @@ Jinja2==3.1.6
 jsonschema==4.23.0
 jsonschema-specifications==2024.10.1
 markdown-it-py==3.0.0
-MarkupSafe==3.0.2  # (Your version is newer than public release)
+MarkupSafe==3.0.2  # 
 mdurl==0.1.2
 narwhals==1.39.0
 numpy==2.3.0
 packaging==25.0
 pandas==2.3.0
 pillow==11.2.1
-protobuf==2023  # (Edition-based; check compatibility)
+protobuf==5.29.3
 pyarrow==19.0.0
 pydeck==0.9.1
 Pygments==2.19.1
