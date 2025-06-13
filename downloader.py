@@ -11,7 +11,7 @@ if not os.path.exists("downloads"):
 # Configure Streamlit page settings
 st.set_page_config(
     page_title="Ze Video Downloader",
-    page_icon="📥",
+    page_icon="/my-favicon/favicon.ico",
     layout="centered"
 )
 
