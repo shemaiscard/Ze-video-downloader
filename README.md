@@ -58,7 +58,7 @@ This project was engineered to solve the complexity of handling diverse media st
 
 ---
 
-##  Project Structure
+## Project Structure
 
 ├── downloader.py    # Main application logic and UI rendering
 ├── downloads/       # Temporary storage for processing files
