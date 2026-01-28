@@ -35,7 +35,7 @@ requests==2.32.5
 rich==13.9.4
 rpds-py==0.23.0
 six==1.17.0
-smmap==6.0.0
+smmap==5.0.2
 streamlit==1.53.1
 tenacity==9.0.0
 toml==0.10.2
