@@ -213,6 +213,8 @@ if st.button("process") or url:
             'geo_bypass': True,
             'geo_bypass_country': 'US',
             'ignore_age_restrictions': True,
+            # Impersonate browser TLS fingerprint to bypass anti-bot mechanisms
+            'impersonate': 'chrome',
             # Let yt-dlp handle headers dynamically. Hardcoded old User-Agents trigger 403s.
     }
     
