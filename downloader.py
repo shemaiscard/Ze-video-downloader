@@ -213,12 +213,7 @@ if st.button("process") or url:
             'geo_bypass': True,
             'geo_bypass_country': 'US',
             'ignore_age_restrictions': True,
-            # Add headers to bypass anti-bot protection
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Referer': 'https://www.google.com/'
-            }            
-            
+            # Let yt-dlp handle headers dynamically. Hardcoded old User-Agents trigger 403s.
     }
     
         try:
