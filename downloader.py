@@ -211,31 +211,15 @@ def get_ydl_base_opts(cookies_txt: str | None = None) -> dict:
         "nocheckcertificate": True,
         "geo_bypass": True,
         "geo_bypass_country": "US",
-        # ── YouTube 403 fix: force mobile-web player client ──────────────────
-        # Cloud server IPs (AWS/GCP/Streamlit) are blocked by YouTube's default
-        # web player. The mobile web client ("mweb") has lighter restrictions.
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["mweb", "web_creator", "ios"],
-                "player_skip": [],
-            }
-        },
         "http_headers": {
-            # Mobile Chrome UA matches the mweb player client
             "User-Agent": (
-                "Mozilla/5.0 (Linux; Android 13; Pixel 7) "
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.6367.82 Mobile Safari/537.36"
+                "Chrome/124.0.0.0 Safari/537.36"
             ),
             "Accept-Language": "en-US,en;q=0.9",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Origin": "https://www.youtube.com",
-            "Referer": "https://www.youtube.com/",
         },
-        # Retry on transient network errors
-        "retries": 5,
-        "fragment_retries": 5,
-        "file_access_retries": 3,
     }
     if cookies_txt:
         opts["cookiefile"] = cookies_txt
@@ -453,7 +437,7 @@ if "video_info" in st.session_state:
                     )
             elif d["status"] == "finished":
                 progress_bar.progress(1.0)
-                status_text.markdown(" **Processing file…**")
+                status_text.markdown("✅ **Processing file…**")
 
         fmt, pp = build_format_string(quality)
         dl_opts = get_ydl_base_opts(cookies_path)
