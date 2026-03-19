@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.venv312/
+
+# Downloads (user files)
+downloads/
+
+# Secrets / cookies
+cookies.txt
+*.json
+!packages.txt
+
+# IDE
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/secrets.toml
