@@ -211,36 +211,17 @@ def get_ydl_base_opts(cookies_txt: str | None = None) -> dict:
         "nocheckcertificate": True,
         "geo_bypass": True,
         "geo_bypass_country": "US",
-        # ── YouTube 403 fix ──────────────────────────────────────────────────
-        # Cloud server IPs are blocked by YouTube's web/mweb player.
-        # android_creator uses a separate auth path that bypasses IP filtering.
-        # Fallback chain: android_creator → android → tv_embedded → mweb
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android_creator", "android", "tv_embedded", "mweb"],
-                "player_skip": ["webpage"],   # skip expensive webpage fetch
-            }
-        },
-        # Prefer pre-merged formats (single file) — avoids DASH segment 403s
-        "format_sort": ["proto:https", "vcodec:h264", "acodec:aac"],
         "http_headers": {
             "User-Agent": (
-                "com.google.android.youtube/19.09.37 "
-                "(Linux; U; Android 13; en_US; Pixel 7; "
-                "Build/TQ3A.230901.001) gzip"
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
             ),
             "Accept-Language": "en-US,en;q=0.9",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "X-YouTube-Client-Name": "3",
-            "X-YouTube-Client-Version": "19.09.37",
         },
-        # Retry on transient network errors
-        "retries": 8,
-        "fragment_retries": 8,
-        "file_access_retries": 5,
-        "socket_timeout": 30,
     }
-    if cookies_txt and os.path.exists(cookies_txt):
+    if cookies_txt:
         opts["cookiefile"] = cookies_txt
     return opts
 
@@ -277,22 +258,16 @@ with st.sidebar:
     st.markdown("## ⚙️ Settings")
     st.markdown("---")
     cookies_file = st.file_uploader(
-        "🍪 Cookies file (optional)",
+        " Cookies file (optional)",
         type=["txt"],
-        help="Upload a Netscape cookies.txt to bypass age-restrictions or login-walls (export with 'Get cookies.txt LOCALLY' Chrome extension).",
+        help="Upload a Netscape cookies.txt to bypass age-restrictions or login-walls.",
     )
-    # Persist cookies path across Streamlit reruns via session_state
+    cookies_path = None
     if cookies_file:
         cookies_path = os.path.join(DOWNLOAD_DIR, "cookies.txt")
         with open(cookies_path, "wb") as f:
             f.write(cookies_file.read())
-        st.session_state["cookies_path"] = cookies_path
-        st.success("✅ Cookies loaded!")
-    elif "cookies_path" in st.session_state and os.path.exists(st.session_state["cookies_path"]):
-        cookies_path = st.session_state["cookies_path"]
-        st.info("🍪 Cookies active from previous upload")
-    else:
-        cookies_path = None
+        st.success("Cookies loaded ✔")
 
     allow_playlist = st.toggle(" Allow playlist download", value=False)
     embed_subs = st.toggle(" Embed subtitles (if available)", value=False)
@@ -462,7 +437,7 @@ if "video_info" in st.session_state:
                     )
             elif d["status"] == "finished":
                 progress_bar.progress(1.0)
-                status_text.markdown(" **Processing file…**")
+                status_text.markdown("✅ **Processing file…**")
 
         fmt, pp = build_format_string(quality)
         dl_opts = get_ydl_base_opts(cookies_path)
