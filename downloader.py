@@ -239,23 +239,12 @@ def get_ydl_base_opts(cookies_txt: str | None = None) -> dict:
         # Fallback chain: android_creator → android → tv_embedded → mweb
         "extractor_args": {
             "youtube": {
-                "player_client": ["default"],
+                "player_client": ["ios,android,web"],
                 "po_token_provider": ["bgutil"]
             }
         },
         # Prefer pre-merged formats (single file) — avoids DASH segment 403s
         "format_sort": ["proto:https", "vcodec:h264", "acodec:aac"],
-        "http_headers": {
-            "User-Agent": (
-                "com.google.android.youtube/19.09.37 "
-                "(Linux; U; Android 13; en_US; Pixel 7; "
-                "Build/TQ3A.230901.001) gzip"
-            ),
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "X-YouTube-Client-Name": "3",
-            "X-YouTube-Client-Version": "19.09.37",
-        },
         # Retry on transient network errors
         "retries": 8,
         "fragment_retries": 8,
