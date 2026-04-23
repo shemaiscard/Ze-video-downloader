@@ -30,6 +30,26 @@ if "session_id" not in st.session_state:
 SESSION_DIR = os.path.join(DOWNLOAD_DIR, st.session_state["session_id"])
 os.makedirs(SESSION_DIR, exist_ok=True)
 
+# ── Baked-in cookies from Streamlit Secrets ───────────────────────────────────
+# If a cookies.txt is stored in st.secrets["youtube"]["cookies"], write it to
+# disk once per app startup so every yt-dlp call can use it automatically.
+# This bypasses YouTube's AWS/datacenter IP block without requiring users to
+# upload their own cookies file.
+BAKED_COOKIES_PATH = os.path.join(DOWNLOAD_DIR, "baked_cookies.txt")
+
+def _write_baked_cookies():
+    try:
+        cookie_data = st.secrets["youtube"]["cookies"]
+        if cookie_data and cookie_data.strip():
+            with open(BAKED_COOKIES_PATH, "w", encoding="utf-8") as f:
+                f.write(cookie_data.strip())
+            return True
+    except (KeyError, AttributeError, FileNotFoundError):
+        pass
+    return False
+
+_BAKED_COOKIES_AVAILABLE = _write_baked_cookies()
+
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Ze Video Downloader",
@@ -251,8 +271,11 @@ def get_ydl_base_opts(cookies_txt: str | None = None) -> dict:
         "file_access_retries": 5,
         "socket_timeout": 30,
     }
+    # Priority: user-uploaded cookies > baked-in secrets cookies
     if cookies_txt and os.path.exists(cookies_txt):
         opts["cookiefile"] = cookies_txt
+    elif _BAKED_COOKIES_AVAILABLE and os.path.exists(BAKED_COOKIES_PATH):
+        opts["cookiefile"] = BAKED_COOKIES_PATH
     return opts
 
 def build_format_string(quality: str) -> tuple[str, list | None]:
