@@ -37,6 +37,6 @@ typing_extensions==4.15.0
 tzdata==2025.3
 urllib3==2.6.3
 watchdog==6.0.0
-yt-dlp[default] @ git+https://github.com/yt-dlp/yt-dlp.git@master
+yt-dlp
 yt-dlp-get-pot
 bgutil-ytdlp-pot-provider

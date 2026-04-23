@@ -30,26 +30,6 @@ if "session_id" not in st.session_state:
 SESSION_DIR = os.path.join(DOWNLOAD_DIR, st.session_state["session_id"])
 os.makedirs(SESSION_DIR, exist_ok=True)
 
-# ── Baked-in cookies from Streamlit Secrets ───────────────────────────────────
-# If a cookies.txt is stored in st.secrets["youtube"]["cookies"], write it to
-# disk once per app startup so every yt-dlp call can use it automatically.
-# This bypasses YouTube's AWS/datacenter IP block without requiring users to
-# upload their own cookies file.
-BAKED_COOKIES_PATH = os.path.join(DOWNLOAD_DIR, "baked_cookies.txt")
-
-def _write_baked_cookies():
-    try:
-        cookie_data = st.secrets["youtube"]["cookies"]
-        if cookie_data and cookie_data.strip():
-            with open(BAKED_COOKIES_PATH, "w", encoding="utf-8") as f:
-                f.write(cookie_data.strip())
-            return True
-    except (KeyError, AttributeError, FileNotFoundError):
-        pass
-    return False
-
-_BAKED_COOKIES_AVAILABLE = _write_baked_cookies()
-
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Ze Video Downloader",
@@ -259,23 +239,31 @@ def get_ydl_base_opts(cookies_txt: str | None = None) -> dict:
         # Fallback chain: android_creator → android → tv_embedded → mweb
         "extractor_args": {
             "youtube": {
-                "player_client": ["ios,android,web"],
+                "player_client": ["default"],
                 "po_token_provider": ["bgutil"]
             }
         },
         # Prefer pre-merged formats (single file) — avoids DASH segment 403s
         "format_sort": ["proto:https", "vcodec:h264", "acodec:aac"],
+        "http_headers": {
+            "User-Agent": (
+                "com.google.android.youtube/19.09.37 "
+                "(Linux; U; Android 13; en_US; Pixel 7; "
+                "Build/TQ3A.230901.001) gzip"
+            ),
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "X-YouTube-Client-Name": "3",
+            "X-YouTube-Client-Version": "19.09.37",
+        },
         # Retry on transient network errors
         "retries": 8,
         "fragment_retries": 8,
         "file_access_retries": 5,
         "socket_timeout": 30,
     }
-    # Priority: user-uploaded cookies > baked-in secrets cookies
     if cookies_txt and os.path.exists(cookies_txt):
         opts["cookiefile"] = cookies_txt
-    elif _BAKED_COOKIES_AVAILABLE and os.path.exists(BAKED_COOKIES_PATH):
-        opts["cookiefile"] = BAKED_COOKIES_PATH
     return opts
 
 def build_format_string(quality: str) -> tuple[str, list | None]:
