@@ -3,10 +3,32 @@ import yt_dlp
 import os
 import re
 import glob
+import uuid
+import time
+import shutil
 
 # ── Folder setup ──────────────────────────────────────────────────────────────
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+# Cleanup old sessions (older than 30 mins)
+def cleanup_old_sessions():
+    now = time.time()
+    for item in os.listdir(DOWNLOAD_DIR):
+        item_path = os.path.join(DOWNLOAD_DIR, item)
+        if os.path.isdir(item_path):
+            try:
+                if now - os.path.getmtime(item_path) > 1800:
+                    shutil.rmtree(item_path)
+            except Exception:
+                pass
+cleanup_old_sessions()
+
+if "session_id" not in st.session_state:
+    st.session_state["session_id"] = str(uuid.uuid4())
+
+SESSION_DIR = os.path.join(DOWNLOAD_DIR, st.session_state["session_id"])
+os.makedirs(SESSION_DIR, exist_ok=True)
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -211,17 +233,36 @@ def get_ydl_base_opts(cookies_txt: str | None = None) -> dict:
         "nocheckcertificate": True,
         "geo_bypass": True,
         "geo_bypass_country": "US",
+        # ── YouTube 403 fix ──────────────────────────────────────────────────
+        # Cloud server IPs are blocked by YouTube's web/mweb player.
+        # android_creator uses a separate auth path that bypasses IP filtering.
+        # Fallback chain: android_creator → android → tv_embedded → mweb
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["mweb"],
+                "po_token_provider": ["bgutil"]
+            }
+        },
+        # Prefer pre-merged formats (single file) — avoids DASH segment 403s
+        "format_sort": ["proto:https", "vcodec:h264", "acodec:aac"],
         "http_headers": {
             "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
+                "com.google.android.youtube/19.09.37 "
+                "(Linux; U; Android 13; en_US; Pixel 7; "
+                "Build/TQ3A.230901.001) gzip"
             ),
             "Accept-Language": "en-US,en;q=0.9",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "X-YouTube-Client-Name": "3",
+            "X-YouTube-Client-Version": "19.09.37",
         },
+        # Retry on transient network errors
+        "retries": 8,
+        "fragment_retries": 8,
+        "file_access_retries": 5,
+        "socket_timeout": 30,
     }
-    if cookies_txt:
+    if cookies_txt and os.path.exists(cookies_txt):
         opts["cookiefile"] = cookies_txt
     return opts
 
@@ -230,16 +271,6 @@ def build_format_string(quality: str) -> tuple[str, list | None]:
     pp = None
     if quality == "Best (auto)":
         fmt = "bestvideo+bestaudio/best"
-    elif quality == "4K (2160p)":
-        fmt = "bestvideo[height<=2160]+bestaudio/best[height<=2160]"
-    elif quality == "1080p":
-        fmt = "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
-    elif quality == "720p":
-        fmt = "bestvideo[height<=720]+bestaudio/best[height<=720]"
-    elif quality == "480p":
-        fmt = "bestvideo[height<=480]+bestaudio/best[height<=480]"
-    elif quality == "360p":
-        fmt = "bestvideo[height<=360]+bestaudio/best[height<=360]"
     elif quality == "MP3 (audio only)":
         fmt = "bestaudio/best"
         pp = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "320"}]
@@ -250,7 +281,12 @@ def build_format_string(quality: str) -> tuple[str, list | None]:
         fmt = "bestaudio/best"
         pp = [{"key": "FFmpegExtractAudio", "preferredcodec": "flac"}]
     else:
-        fmt = "best"
+        match = re.search(r'(\d+)p', quality)
+        if match:
+            h = match.group(1)
+            fmt = f"bestvideo[height<={h}]+bestaudio/best[height<={h}]"
+        else:
+            fmt = "best"
     return fmt, pp
 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
@@ -258,16 +294,22 @@ with st.sidebar:
     st.markdown("## ⚙️ Settings")
     st.markdown("---")
     cookies_file = st.file_uploader(
-        " Cookies file (optional)",
+        "🍪 Cookies file (optional)",
         type=["txt"],
-        help="Upload a Netscape cookies.txt to bypass age-restrictions or login-walls.",
+        help="Upload a Netscape cookies.txt to bypass age-restrictions or login-walls (export with 'Get cookies.txt LOCALLY' Chrome extension).",
     )
-    cookies_path = None
+    # Persist cookies path across Streamlit reruns via session_state
     if cookies_file:
-        cookies_path = os.path.join(DOWNLOAD_DIR, "cookies.txt")
+        cookies_path = os.path.join(SESSION_DIR, "cookies.txt")
         with open(cookies_path, "wb") as f:
             f.write(cookies_file.read())
-        st.success("Cookies loaded ✔")
+        st.session_state["cookies_path"] = cookies_path
+        st.success("✅ Cookies loaded!")
+    elif "cookies_path" in st.session_state and os.path.exists(st.session_state["cookies_path"]):
+        cookies_path = st.session_state["cookies_path"]
+        st.info("🍪 Cookies active from previous upload")
+    else:
+        cookies_path = None
 
     allow_playlist = st.toggle(" Allow playlist download", value=False)
     embed_subs = st.toggle(" Embed subtitles (if available)", value=False)
@@ -289,10 +331,16 @@ LinkedIn · Snapchat  · <b style='color:#818cf8'>+1000 more via yt-dlp</b>
 
     st.markdown("---")
     if st.button(" Clear downloads folder"):
-        for f in glob.glob(os.path.join(DOWNLOAD_DIR, "*")):
+        for f in glob.glob(os.path.join(SESSION_DIR, "*")):
             if not f.endswith("cookies.txt"):
-                os.remove(f)
-        st.success("Downloads cleared!")
+                try:
+                    if os.path.isdir(f):
+                        shutil.rmtree(f)
+                    else:
+                        os.remove(f)
+                except Exception:
+                    pass
+        st.success("Session downloads cleared!")
 
 # ── Hero header ────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -403,8 +451,23 @@ if "video_info" in st.session_state:
     st.markdown("---")
 
     # ── Quality selection ───────────────────────────────────────────────────────
-    VIDEO_QUALITIES = ["Best (auto)", "4K (2160p)", "1080p", "720p", "480p", "360p"]
     AUDIO_QUALITIES = ["MP3 (audio only)", "M4A (audio only)", "FLAC (lossless)"]
+
+    video_resolutions = []
+    if info.get("formats"):
+        for f in info.get("formats"):
+            h = f.get("height")
+            if h and f.get("vcodec") != "none":
+                res_str = f"{h}p"
+                if res_str not in video_resolutions:
+                    video_resolutions.append(res_str)
+        video_resolutions.sort(key=lambda x: int(x.replace("p", "")), reverse=True)
+
+    VIDEO_QUALITIES = ["Best (auto)"]
+    if video_resolutions:
+        VIDEO_QUALITIES.extend(video_resolutions)
+    else:
+        VIDEO_QUALITIES.extend(["4K (2160p)", "1080p", "720p", "480p", "360p"])
 
     qcol1, qcol2 = st.columns([1, 2])
     with qcol1:
@@ -437,13 +500,13 @@ if "video_info" in st.session_state:
                     )
             elif d["status"] == "finished":
                 progress_bar.progress(1.0)
-                status_text.markdown("✅ **Processing file…**")
+                status_text.markdown(" **Processing file…**")
 
         fmt, pp = build_format_string(quality)
         dl_opts = get_ydl_base_opts(cookies_path)
         dl_opts.update({
             "format":         fmt,
-            "outtmpl":        f"{DOWNLOAD_DIR}/{sanitize_filename(title)}.%(ext)s",
+            "outtmpl":        f"{SESSION_DIR}/{sanitize_filename(title)}.%(ext)s",
             "progress_hooks": [progress_hook],
             "noplaylist":     not allow_playlist,
             "writeinfojson":  write_info,
@@ -454,6 +517,15 @@ if "video_info" in st.session_state:
             dl_opts["subtitleslangs"] = ["en", "auto"]
         if embed_thumbnail and dl_type == "Audio only":
             dl_opts["embedthumbnail"] = True
+            
+        if dl_type == "Video":
+            if pp is None:
+                pp = []
+            pp.append({
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            })
+
         if pp:
             dl_opts["postprocessors"] = pp
 
