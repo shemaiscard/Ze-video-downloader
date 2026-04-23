@@ -239,7 +239,7 @@ def get_ydl_base_opts(cookies_txt: str | None = None) -> dict:
         # Fallback chain: android_creator → android → tv_embedded → mweb
         "extractor_args": {
             "youtube": {
-                "player_client": ["mweb"],
+                "player_client": ["default"],
                 "po_token_provider": ["bgutil"]
             }
         },
@@ -359,7 +359,7 @@ url = st.text_input(
 
 col_btn, col_info = st.columns([1, 4])
 with col_btn:
-    fetch_clicked = st.button(" Get Info", use_container_width=True)
+    fetch_clicked = st.button(" Get Info", width="stretch")
 
 # ── Main logic ─────────────────────────────────────────────────────────────────
 if fetch_clicked or (url and "video_info" not in st.session_state):
@@ -416,7 +416,7 @@ if "video_info" in st.session_state:
 
     with left:
         if thumbnail:
-            st.image(thumbnail, use_container_width=True)
+            st.image(thumbnail, width="stretch")
         if is_live:
             st.warning(" This is a **LIVE stream** — only stream download is possible.")
 
@@ -480,7 +480,7 @@ if "video_info" in st.session_state:
 
     # ── Download button ─────────────────────────────────────────────────────────
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("⬇️  Download Now", use_container_width=True):
+    if st.button("⬇️  Download Now", width="stretch"):
         progress_bar = st.progress(0)
         status_text  = st.empty()
 
@@ -547,7 +547,7 @@ if "video_info" in st.session_state:
                         data      = fh.read(),
                         file_name = os.path.basename(final_file),
                         mime      = "application/octet-stream",
-                        use_container_width=True,
+                        width     = "stretch",
                     )
             else:
                 st.error(" File not found after download. Try a different quality.")
